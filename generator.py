@@ -89,6 +89,16 @@ def generate_flyer(slots: list, target_date: date = None) -> Path:
                           slot['time'], font=f_time, fill=COLOR_ORANGE)
                 y += bbox_h(slot['time']) + card_gap
 
+    # ── "Últimos turnos disponibles!" si quedan 1 o 2 ──
+    if len(slots) <= 2:
+        barlow = str(FONTS_DIR / "BarlowCondensed-ExtraBoldItalic.ttf")
+        f_urgente = _load_font(barlow, 58)
+        texto = "Ultimos turnos disponibles!"
+        draw.text(
+            (_center_x(draw, texto, f_urgente, W), y + 20),
+            texto, font=f_urgente, fill=COLOR_WHITE
+        )
+
     OUTPUT_DIR.mkdir(exist_ok=True)
     filename = OUTPUT_DIR / f"flyer_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
     canvas.save(filename, "PNG")

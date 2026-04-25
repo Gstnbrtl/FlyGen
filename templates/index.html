@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Fly Gen — Negro Padel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,800&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: #0d0d0d;
+      color: #fff;
+      font-family: 'Barlow', sans-serif;
+      min-height: 100vh;
+      max-width: 480px;
+      margin: 0 auto;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Grunge texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+    }
+
+    /* Orange corner splashes */
+    .corner-tl, .corner-br {
+      position: fixed;
+      width: 160px;
+      height: 160px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .corner-tl { top: 0; left: 0; }
+    .corner-br { bottom: 0; right: 0; transform: rotate(180deg); }
+
+    .corner-tl svg, .corner-br svg { width: 100%; height: 100%; }
+
+    /* Main content */
+    .content {
+      position: relative;
+      z-index: 2;
+      padding: 0 20px 40px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 56px 20px 24px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .header-titles { flex: 1; }
+
+    .title-flygen {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-style: italic;
+      font-weight: 800;
+      font-size: 3.6rem;
+      color: #FF6E00;
+      line-height: 1;
+      letter-spacing: -0.01em;
+      text-shadow: 0 2px 20px rgba(255,110,0,0.4);
+    }
+
+    .title-sub {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 600;
+      font-size: 0.85rem;
+      letter-spacing: 0.35em;
+      color: #ccc;
+      margin-top: 2px;
+    }
+
+    .hamburger {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      padding: 8px;
+      margin-top: 6px;
+    }
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: #fff;
+      border-radius: 2px;
+    }
+
+    /* Day list */
+    .day-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 0 20px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .day-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #161616;
+      border: 1.5px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 18px 16px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      text-decoration: none;
+      color: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .day-row:active { background: #1e1e1e; }
+
+    .day-row.today {
+      border-color: #FF6E00;
+    }
+
+    .day-row.today .day-name { color: #FF6E00; }
+
+    .cal-icon {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+    }
+
+    .day-info { flex: 1; }
+
+    .day-name {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: 0.05em;
+      color: #fff;
+      line-height: 1.1;
+    }
+
+    .day-date {
+      font-size: 0.82rem;
+      color: #777;
+      margin-top: 2px;
+    }
+
+    .chevron {
+      color: #FF6E00;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    /* Footer logo */
+    footer {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 0 32px;
+      gap: 8px;
+    }
+
+    .footer-logo { width: 72px; height: auto; opacity: 0.9; }
+
+    .logo-text { text-align: center; }
+    .logo-negro {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: 0.2em;
+      color: #aaa;
+    }
+
+    /* ── Result overlay ── */
+    #result-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 100;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    #result-overlay.active { display: flex; }
+
+    .overlay-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.8rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    #status-msg {
+      font-size: 0.95rem;
+      color: #888;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    #status-msg.error { color: #FF3B30; }
+    #status-msg.ok    { color: #30D158; }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #222;
+      border-top-color: #FF6E00;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #flyer-preview {
+      max-width: 100%;
+      max-height: 55vh;
+      object-fit: contain;
+      border-radius: 12px;
+      display: none;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+      margin-bottom: 20px;
+    }
+
+    #dl-btn {
+      display: none;
+      background: #FF6E00;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 40px;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    #dl-btn:hover { background: #e06000; }
+  </style>
+</head>
+<body>
+
+  <!-- Corner splashes -->
+  <div class="corner-tl">
+    <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="30" rx="90" ry="60" fill="#FF6E00" opacity="0.18" transform="rotate(-35 30 30)"/>
+      <ellipse cx="10" cy="50" rx="60" ry="30" fill="#FF6E00" opacity="0.12" transform="rotate(-20 10 50)"/>
+      <ellipse cx="50" cy="10" rx="50" ry="20" fill="#FF6E00" opacity="0.15" transform="rotate(-50 50 10)"/>
+    </svg>
+  </div>
+  <div class="corner-br">
+    <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="30" rx="90" ry="60" fill="#FF6E00" opacity="0.18" transform="rotate(-35 30 30)"/>
+      <ellipse cx="10" cy="50" rx="60" ry="30" fill="#FF6E00" opacity="0.12" transform="rotate(-20 10 50)"/>
+      <ellipse cx="50" cy="10" rx="50" ry="20" fill="#FF6E00" opacity="0.15" transform="rotate(-50 50 10)"/>
+    </svg>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="header-titles">
+      <div class="title-flygen">FLY GEN</div>
+      <div class="title-sub">N E G R O &nbsp; P A D E L</div>
+    </div>
+    <div class="hamburger">
+      <span></span><span></span><span></span>
+    </div>
+  </header>
+
+  <!-- Day list -->
+  <div class="day-list">
+    {% for d in days %}
+    <div class="day-row {% if d.offset == 0 %}today{% endif %}"
+         onclick="genFlyer('{{ d.iso }}', '{{ d.label }}')">
+      <!-- Calendar icon -->
+      <svg class="cal-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="5" y="9" width="30" height="26" rx="4" stroke="#FF6E00" stroke-width="2"/>
+        <line x1="5" y1="17" x2="35" y2="17" stroke="#FF6E00" stroke-width="2"/>
+        <line x1="13" y1="5" x2="13" y2="13" stroke="#FF6E00" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="27" y1="5" x2="27" y2="13" stroke="#FF6E00" stroke-width="2.5" stroke-linecap="round"/>
+        <rect x="11" y="22" width="5" height="4" rx="1" fill="#FF6E00"/>
+        <rect x="18" y="22" width="5" height="4" rx="1" fill="#FF6E00"/>
+        <rect x="25" y="22" width="5" height="4" rx="1" fill="#FF6E00"/>
+        <rect x="11" y="29" width="5" height="4" rx="1" fill="#FF6E00"/>
+        <rect x="18" y="29" width="5" height="4" rx="1" fill="#FF6E00"/>
+      </svg>
+      <div class="day-info">
+        <div class="day-name">{{ d.label | upper }}</div>
+        <div class="day-date">{{ d.date }}</div>
+      </div>
+      <span class="chevron">›</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <img src="/assets/logo.png" class="footer-logo" alt="Negro Padel">
+    <div class="logo-text">
+      <div class="logo-negro">NEGRO PADEL</div>
+    </div>
+  </footer>
+
+  <!-- Result overlay -->
+  <div id="result-overlay">
+    <button class="overlay-close" onclick="closeOverlay()">×</button>
+    <div class="spinner" id="spinner"></div>
+    <p id="status-msg"></p>
+    <img id="flyer-preview" src="" alt="Flyer">
+    <a id="dl-btn" href="#" download>Descargar</a>
+  </div>
+
+  <script>
+    async function genFlyer(iso, label) {
+      const overlay  = document.getElementById('result-overlay');
+      const spinner  = document.getElementById('spinner');
+      const statusEl = document.getElementById('status-msg');
+      const preview  = document.getElementById('flyer-preview');
+      const dlBtn    = document.getElementById('dl-btn');
+
+      overlay.classList.add('active');
+      spinner.style.display  = 'block';
+      statusEl.textContent   = `Scrapeando ${label}...`;
+      statusEl.className     = '';
+      preview.style.display  = 'none';
+      dlBtn.style.display    = 'none';
+
+      try {
+        const res  = await fetch(`/generate/${iso}`);
+        const data = await res.json();
+        spinner.style.display = 'none';
+
+        if (!res.ok) {
+          statusEl.textContent = data.error || 'Error desconocido';
+          statusEl.className   = 'error';
+          return;
+        }
+
+        statusEl.textContent = `${data.slots} turno(s) disponible(s)`;
+        statusEl.className   = 'ok';
+        preview.src          = `data:image/png;base64,${data.image}`;
+        preview.style.display = 'block';
+        dlBtn.href            = `/download/${iso}`;
+        dlBtn.download        = data.filename;
+        dlBtn.style.display   = 'inline-block';
+
+      } catch (e) {
+        spinner.style.display = 'none';
+        statusEl.textContent  = 'Error de conexión';
+        statusEl.className    = 'error';
+      }
+    }
+
+    function closeOverlay() {
+      document.getElementById('result-overlay').classList.remove('active');
+    }
+  </script>
+
+</body>
+</html>

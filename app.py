@@ -78,19 +78,19 @@ def generate(iso_date):
     })
 
 
-@app.route('/download/<iso_date>')
-def download(iso_date):
-    try:
-        target = date.fromisoformat(iso_date)
-    except ValueError:
-        return "Fecha inválida", 400
-
-    slots = get_available_slots(target_date=target)
-    if not slots:
-        return "No hay turnos disponibles", 404
-
-    path = generate_flyer(slots, target_date=target)
-    return send_file(path, as_attachment=True, download_name=path.name)
+@app.route('/file/<filename>')
+def serve_file(filename):
+    from pathlib import Path
+    output_dir = Path('output')
+    filepath = output_dir / filename
+    if not filepath.exists():
+        return "Archivo no encontrado", 404
+    return send_file(
+        filepath,
+        mimetype='image/png',
+        as_attachment=True,
+        download_name=filename,
+    )
 
 
 if __name__ == '__main__':

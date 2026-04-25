@@ -355,12 +355,11 @@
           return;
         }
 
-        statusEl.textContent = `${data.slots} turno(s) disponible(s)`;
-        statusEl.className   = 'ok';
-        const imgSrc         = `data:image/png;base64,${data.image}`;
-        preview.src          = imgSrc;
+        statusEl.textContent  = `${data.slots} turno(s) disponible(s)`;
+        statusEl.className    = 'ok';
+        preview.src           = `data:image/png;base64,${data.image}`;
         preview.style.display = 'block';
-        dlBtn.href            = imgSrc;
+        dlBtn.href            = `/file/${data.filename}`;
         dlBtn.download        = data.filename;
         dlBtn.style.display   = 'inline-block';
 

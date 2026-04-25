@@ -17,7 +17,17 @@ async def _scrape(target_date: date, debug: bool = False) -> dict:
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             headless=True,
-            args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+            args=[
+                '--no-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--no-zygote',
+                '--single-process',
+                '--disable-extensions',
+                '--disable-background-networking',
+                '--disable-default-apps',
+                '--mute-audio',
+            ]
         )
         page = await browser.new_page()
 
@@ -33,8 +43,9 @@ async def _scrape(target_date: date, debug: bool = False) -> dict:
 
         page.on('response', on_response)
 
-        await page.goto(URL, wait_until='networkidle')
-        await page.wait_for_timeout(3000)
+        await page.set_viewport_size({"width": 1280, "height": 900})
+        await page.goto(URL, wait_until='networkidle', timeout=60000)
+        await page.wait_for_timeout(5000)
 
         # If we intercepted an API, use it (faster and more reliable)
         if api_data and not debug:
@@ -45,36 +56,52 @@ async def _scrape(target_date: date, debug: bool = False) -> dict:
         js_code = """() => {
             const targetDay   = TARGET_DAY;
             const targetMonth = TARGET_MONTH;
-            const MONTHS = {'ene':1,'feb':2,'mar':3,'abr':4,'may':5,
-                            'jun':6,'jul':7,'ago':8,'sep':9,'oct':10,'nov':11,'dic':12};
+            const MONTHS = {
+                'ene':1,'enero':1,'feb':2,'febrero':2,'mar':3,'marzo':3,
+                'abr':4,'abril':4,'may':5,'mayo':5,'jun':6,'junio':6,
+                'jul':7,'julio':7,'ago':8,'agosto':8,'sep':9,'septiembre':9,
+                'oct':10,'octubre':10,'nov':11,'noviembre':11,'dic':12,'diciembre':12
+            };
 
-            // ---- 1. Find all day headers and locate today's ----
             const allEls = Array.from(document.querySelectorAll('*'));
 
+            // ---- 1. Find day headers (flexible children count) ----
             const dayHeaders = allEls.filter(el => {
-                if (el.children.length > 2) return false;
+                if (el.children.length > 5) return false;
                 const t = el.textContent.trim().toLowerCase();
-                return /^(lunes|martes|mi.rcoles|jueves|viernes|s.bado|domingo)/i.test(t);
+                return /^(lunes|martes|mi|jueves|viernes|s[aá]bado|domingo)/i.test(t);
             });
 
+            // ---- 2. Match by day number + month (flexible format) ----
             let targetHeader = null;
             for (const h of dayHeaders) {
                 const t = h.textContent.trim().toLowerCase();
-                const m = t.match(/(\\d+)\\s+(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)/i);
-                if (m) {
-                    const d  = parseInt(m[1]);
-                    const mo = MONTHS[m[2].toLowerCase()];
-                    if (d === targetDay && mo === targetMonth) {
-                        targetHeader = h;
-                        break;
-                    }
+                // Try "26 abr", "26 abril", "abr 26", "26/04", etc.
+                const m1 = t.match(/(\\d{1,2})\\s*[/\\-\\s]?\\s*(ene(?:ro)?|feb(?:rero)?|mar(?:zo)?|abr(?:il)?|may(?:o)?|jun(?:io)?|jul(?:io)?|ago(?:sto)?|sep(?:tiembre)?|oct(?:ubre)?|nov(?:iembre)?|dic(?:iembre)?)/i);
+                const m2 = t.match(/(ene(?:ro)?|feb(?:rero)?|mar(?:zo)?|abr(?:il)?|may(?:o)?|jun(?:io)?|jul(?:io)?|ago(?:sto)?|sep(?:tiembre)?|oct(?:ubre)?|nov(?:iembre)?|dic(?:iembre)?)\\s*(\\d{1,2})/i);
+                const m3 = t.match(/(\\d{1,2})\\/(\\d{1,2})/);
+                let d = null, mo = null;
+                if (m1) {
+                    d  = parseInt(m1[1]);
+                    mo = MONTHS[m1[2].replace(/[^a-z]/g,'').substring(0,3).toLowerCase()];
+                } else if (m2) {
+                    d  = parseInt(m2[2]);
+                    mo = MONTHS[m2[1].replace(/[^a-z]/g,'').substring(0,3).toLowerCase()];
+                } else if (m3) {
+                    d  = parseInt(m3[1]);
+                    mo = parseInt(m3[2]);
+                }
+                if (d === targetDay && mo === targetMonth) {
+                    targetHeader = h;
+                    break;
                 }
             }
 
             if (!targetHeader) {
                 return {
                     error: 'day_not_found',
-                    available_headers: dayHeaders.map(h => h.textContent.trim()).slice(0, 10)
+                    available_headers: dayHeaders.map(h => h.textContent.trim()).slice(0, 15),
+                    page_text_sample: document.body.innerText.substring(0, 500)
                 };
             }
 

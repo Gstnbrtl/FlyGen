@@ -15,7 +15,10 @@ async def _scrape(target_date: date, debug: bool = False) -> dict:
     api_data = []
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(
+            headless=True,
+            args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+        )
         page = await browser.new_page()
 
         # Capture any API responses that might contain slot data
